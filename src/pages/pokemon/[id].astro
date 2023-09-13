@@ -1,0 +1,45 @@
+---
+const {id} = Astro.params;
+
+import BaseLayout from '@/layouts/BaseLayout.astro';
+
+import {GET, getEnvVariable} from '@/lib/utils';
+
+import type {PokemonDetail, PokemonSpecies} from '@/env';
+
+const baseUrl = getEnvVariable('PUBLIC_API_BASE_URL');
+
+const pokemonSpecies: PokemonSpecies = await GET(`${baseUrl}/pokemon-species/${id}`);
+
+const pokemonData: PokemonDetail = await fetch(pokemonSpecies.varieties[0].pokemon.url).then(
+  (res) => res.json()
+);
+---
+
+<BaseLayout>
+  <section class="container">
+    <h1>
+      {
+        pokemonSpecies.names.filter(
+          (name: {language: {name: string; url: string}; name: string}) =>
+            name.language.name === 'zh-Hant'
+        )[0]['name']
+      }
+    </h1>
+    <ul>
+      {
+        [
+          ...new Set(
+            pokemonSpecies.flavor_text_entries
+              .filter((flavor_text_entery) => flavor_text_entery.language.name === 'zh-Hant')
+              .map((flavor_text_entery) => flavor_text_entery.flavor_text)
+          ),
+        ].map((flavor_text) => <li>{flavor_text}</li>)
+      }
+    </ul>
+    <img
+      src={pokemonData.sprites.other['official-artwork']['front_default']}
+      alt={pokemonSpecies.name}
+    />
+  </section>
+</BaseLayout>

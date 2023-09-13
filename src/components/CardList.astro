@@ -1,0 +1,44 @@
+---
+const {data, color} = Astro.props;
+
+import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@/components/ui/card';
+import {Badge} from '@/components/ui/badge';
+
+import type {PokemonForm} from '@/env';
+import {pokemonNameFromID, pokemonTypesFromID} from '@/lib/pokemonCSV';
+import {getColorRGBA, typeColor} from '@/lib/pokemonStyles';
+---
+
+<>
+  {
+    data &&
+      color &&
+      data.map((form: PokemonForm, index: number) => (
+        <div class="flex flex-col gap-2">
+          <div class="flex justify-center gap-2">
+            {form.types.map(({type}) => (
+              <Badge key={type.name} className={`${typeColor(type.name)} cursor-pointer flex-auto`}>
+                <span class="w-full text-center">
+                  {pokemonTypesFromID(parseInt(type.url.split('/')[6], 10))}
+                </span>
+              </Badge>
+            ))}
+          </div>
+          <Card
+            className="cursor-pointer"
+            style={{
+              backgroundColor: getColorRGBA(color[index]) as string,
+            }}
+            key={form.id}
+          >
+            <CardHeader>
+              <CardTitle className="text-center">{pokemonNameFromID(form.id)}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <img class="mx-auto" src={form.sprites.front_default} alt={form.pokemon.name} />
+            </CardContent>
+          </Card>
+        </div>
+      ))
+  }
+</>
