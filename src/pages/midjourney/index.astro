@@ -1,0 +1,123 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+
+import {getEnvVariable} from '@/lib/utils';
+
+const token = getEnvVariable('PUBLIC_MIDJOURNEY_TOKEN');
+const application_id = getEnvVariable('PUBLIC_MIDJOURNEY_APPLICATION_ID');
+const channel_id = getEnvVariable('PUBLIC_MIDJOURNEY_CHANNEL_ID');
+const session_id = getEnvVariable('PUBLIC_MIDJOURNEY_SESSION_ID');
+const version = getEnvVariable('PUBLIC_MIDJOURNEY_VERSION');
+const id = getEnvVariable('PUBLIC_MIDJOURNEY_ID');
+
+const apiPath = 'https://discord.com/api/v9/interactions';
+if (Astro.request.method === 'POST') {
+  const data = await Astro.request.formData();
+
+  const entries = Object.fromEntries(data.entries());
+  handlePost(entries);
+
+  async function handlePost(result: {[k: string]: FormDataEntryValue}) {
+    const {prompt, prompt2, prefix} = result;
+
+    console.log('do post with prompt1:', prompt);
+    console.log('do post with prompt2:', prompt2);
+
+    const prefixList = prefix ? (prefix as string).split(',') : [];
+
+    const wait = (milliseconds: number) =>
+      new Promise((resolve) => setTimeout(resolve, milliseconds));
+
+    const doPostWithPrompt = async (givenPrompt: string, currentPrefix: string) => {
+      const reqPrompt = `${givenPrompt} --${currentPrefix}`;
+      await wait(2000);
+      await fetch(`${apiPath}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          authorization: `${token}`,
+        },
+        body: JSON.stringify({
+          type: 2,
+          application_id,
+          channel_id,
+          session_id,
+          data: {
+            version,
+            id,
+            name: 'imagine',
+            type: 1,
+            options: [{type: 3, name: 'prompt', value: `${reqPrompt}`}],
+          },
+          nonce: new Date().getTime(),
+        }),
+      });
+    };
+
+    prefixList
+      .reduce<Promise<void>>(async (prevPromise, currentPrefix) => {
+        await prevPromise;
+        await doPostWithPrompt(prompt as string, currentPrefix);
+      }, Promise.resolve())
+      .then(() => {
+        return prefixList.reduce<Promise<void>>(async (prevPromise, currentPrefix) => {
+          await prevPromise;
+          await doPostWithPrompt(prompt2 as string, currentPrefix);
+        }, Promise.resolve());
+      });
+  }
+}
+---
+
+<BaseLayout>
+  <form method="post" class="container flex flex-col gap-4 p-6">
+    <div class="flex gap-2">
+      <input
+        id="prompt"
+        class="flex w-full px-3 py-1 text-sm transition-colors bg-transparent border rounded-md shadow-sm h-9 border-input file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+        type="text"
+        name="prompt"
+        placeholder="Prompt"
+      />
+      <input
+        id="prompt2"
+        class="flex w-full px-3 py-1 text-sm transition-colors bg-transparent border rounded-md shadow-sm h-9 border-input file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+        type="text"
+        name="prompt2"
+        placeholder="Prompt2"
+      />
+      <button
+        id="clear"
+        type="button"
+        class="inline-flex items-center justify-center px-4 py-2 text-sm font-medium transition-colors rounded-md shadow focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9"
+      >
+        Clear
+      </button>
+    </div>
+    <input
+      id="prefix"
+      class="flex w-full px-3 py-1 text-sm transition-colors bg-transparent border rounded-md shadow-sm h-9 border-input file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+      type="text"
+      name="prefix"
+      placeholder="Prefix"
+      value="5,n,ne,nr,nc"
+    />
+    <button
+      id="submit"
+      type="submit"
+      class="inline-flex items-center justify-center px-4 py-2 text-sm font-medium transition-colors rounded-md shadow focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9"
+      >POST</button
+    >
+  </form>
+</BaseLayout>
+
+<script>
+  const clearButton = document.getElementById('clear') as HTMLButtonElement;
+  const promptInput = document.getElementById('prompt') as HTMLInputElement;
+  const prompt2Input = document.getElementById('prompt2') as HTMLInputElement;
+
+  clearButton.addEventListener('click', () => {
+    promptInput.value = '';
+    prompt2Input.value = '';
+  });
+</script>

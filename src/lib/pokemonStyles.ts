@@ -63,7 +63,7 @@ export function typeColor(type: string) {
   }
 }
 
-export function getColorRGBA(colorName) {
+export function getColorRGBA(colorName: string) {
   const colors = {
     black: [0, 0, 0],
     blue: [0, 0, 255],
